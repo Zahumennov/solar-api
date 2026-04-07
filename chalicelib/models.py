@@ -2,6 +2,7 @@ import boto3
 from datetime import datetime, timezone
 import uuid
 import os
+from typing import Optional
 
 # LocalStack endpoint
 LOCALSTACK_URL = os.getenv('LOCALSTACK_URL', 'http://localhost:4566')
@@ -41,7 +42,7 @@ def create_site(name: str, location: str, capacity: float) -> dict:
     return site
 
 
-def get_site(site_id: str) -> dict | None:
+def get_site(site_id: str) -> Optional[dict]:
     table = get_sites_table()
     response = table.get_item(Key={'site_id': site_id})
     return response.get('Item')
