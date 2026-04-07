@@ -1,6 +1,7 @@
-import json
 from chalice import Chalice, Rate
 from chalicelib.resolvers import schema
+from chalicelib.csv_processor import process_csv
+from chalicelib.models import get_all_sites, get_readings
 
 app = Chalice(app_name='solar-api')
 
@@ -20,9 +21,23 @@ def graphql():
     }
 
 
+@app.on_s3_event(bucket='solar-readings', events=['s3:ObjectCreated:*'])
+def handle_csv_upload(event):
+    bucket = event.bucket
+    key = event.key
+
+    if not key.endswith('.csv'):
+        print(f"Skipping non-CSV file: {key}")
+        return {'status': 'skipped'}
+
+    print(f"Processing CSV: {bucket}/{key}")
+    result = process_csv(bucket, key)
+    print(f"Result: {result}")
+    return result
+
+
 @app.schedule(Rate(1, unit=Rate.HOURS))
 def aggregate_metrics(event):
-    from chalicelib.models import get_all_sites, get_readings
     sites = get_all_sites()
     for site in sites:
         readings = get_readings(site['site_id'], limit=100)
